@@ -1,0 +1,62 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Country Letters أونلاين</title>
+<style>
+:root{--bg:#0b1020;--p2:#202b45;--text:#f7f8fc;--mut:#aab5ce;--ac:#7c5cff;--gr:#38d9a9;--rd:#ff6b7a;--gd:#ffd166;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#1a2450 0,#0b1020 55%);background-color:#0b1020;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);min-height:100vh}
+main{max-width:780px;margin:auto;padding:18px 14px 40px}.brand{font-weight:900;font-size:clamp(22px,5vw,32px);margin-bottom:12px}
+.panel{background:rgba(21,29,50,.94);border:1px solid #293654;border-radius:20px;padding:18px;margin:12px 0}
+h2{font-size:17px;margin:0 0 12px}p{color:var(--mut);line-height:1.6;margin:7px 0}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pill{border:1px solid #34415f;border-radius:999px;padding:7px 11px;color:var(--gr);font-size:12px}.small{font-size:12px;color:var(--mut)}
+.big{font-size:clamp(25px,7vw,38px);font-weight:900;letter-spacing:4px;text-align:center;min-height:48px;overflow-wrap:anywhere}.sub{text-align:center;color:var(--mut);font-size:13px}
+.turn{color:var(--gd);font-weight:800;text-align:center;margin:10px 0}.turn.me{color:var(--gr)}
+.letters{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:14px}.letters button{background:var(--p2);border:1px solid #3a496a;color:#fff;border-radius:11px;padding:12px 0;font-size:18px;font-weight:800;cursor:pointer}.letters button:disabled{opacity:.3;cursor:not-allowed}
+.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:800;cursor:pointer;background:var(--ac);color:#fff;font-size:15px}.btn.g{background:#0e9f78}.btn:disabled{opacity:.4;cursor:not-allowed}.btn.w{width:100%;margin-top:10px}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid #3a496a;background:#0d1427;color:#fff;font-size:16px;margin:6px 0 10px}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:9px}.pl{background:var(--p2);border:1px solid #33415e;border-radius:13px;padding:11px}.pl.out{opacity:.45;filter:grayscale(1)}.pl.cur{border-color:var(--gd)}
+.qs{display:flex;gap:4px;margin-top:8px}.q{height:7px;flex:1;border-radius:9px;background:#45516b}.q.on{background:var(--rd)}
+.timer{height:10px;background:#293653;border-radius:9px;overflow:hidden;margin:6px 0 2px}#tb{height:100%;width:100%;background:var(--gr)}#tb.low{background:var(--rd)}#ts{font-weight:900}#ts.low{color:var(--rd)}
+.note{background:#22213b;border:1px solid #4e477e;border-radius:12px;padding:12px;margin-top:12px;line-height:1.6}.err{color:var(--rd);font-size:13px;min-height:18px}.code{font-size:34px;font-weight:900;letter-spacing:8px;text-align:center;color:var(--gd)}
+@media(max-width:420px){.letters{grid-template-columns:repeat(6,1fr)}}
+</style></head><body><main id="app"></main>
+<script>
+const AL=[..."ابتثجحخدذرزسشصضطظعغفقكلمنهويئؤء"],MS=10000;
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let id=ls.get("cl_id")||("p"+Math.random().toString(36).slice(2)+Date.now().toString(36));ls.set("cl_id",id);
+let name=ls.get("cl_name")||"",ws=null,open=false,S=null,me=-1,err="",endAt=0;
+const $=i=>document.getElementById(i);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function send(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));else{err="مفيش اتصال بالسيرفر، ثواني…";render()}}
+function conn(){ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
+ ws.onopen=()=>{open=true;const c=ls.get("cl_code");if(c)send({t:"hello",id,code:c});render()};
+ ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}
+  if(m.t==="state"){S=m.s;me=m.me;endAt=Date.now()+m.left;err="";ls.set("cl_code",S.code)}
+  else if(m.t==="err")err=m.msg;else if(m.t==="none"){S=null;ls.set("cl_code","")}
+  render()};
+ ws.onclose=()=>{open=false;render();setTimeout(conn,1500)}}
+function getName(){name=$("nm").value.trim();ls.set("cl_name",name);return name}
+function create(){send({t:"create",id,name:getName()})}
+function join(){send({t:"join",id,name:getName(),code:$("cd").value.trim()})}
+function leave(){send({t:"leave",id});S=null;ls.set("cl_code","");render()}
+const act=t=>send({t});const pick=ch=>send({t:"pick",ch});
+function tick(){if(!S||S.phase!=="play")return;const left=Math.max(0,endAt-Date.now()),low=left<=3000,b=$("tb"),t=$("ts");
+ if(b){b.style.width=(left/MS*100)+"%";b.className=low?"low":"";t.textContent=Math.ceil(left/1000);t.className="sub"+(low?" low":"")}}
+setInterval(tick,200);
+const head='<div class="brand">🌍 COUNTRY LETTERS</div>'+'';
+function render(){const a=$("app"),off=open?'':'<div class="note">بيتصل بالسيرفر…</div>';
+ if(!S){a.innerHTML=head+off+'<div class="panel"><h2>العب أونلاين مع صحابك</h2><p>اكتب اسمك، وبعدين اعمل غرفة جديدة أو ادخل بكود غرفة.</p><input id="nm" maxlength="20" placeholder="اسمك" value="'+esc(name)+'"><button class="btn w g" onclick="create()">إنشاء غرفة جديدة</button><input id="cd" inputmode="numeric" placeholder="كود الغرفة (4 أرقام)"><button class="btn w" onclick="join()">دخول غرفة</button><div class="err">'+esc(err)+'</div></div>';return}
+ const s=S,cur=s.players[s.turn],mine=s.phase==="play"&&s.turn===me;
+ const pl='<div class="panel"><div class="row"><h2>اللاعبون والأرباع</h2><span class="small">4 أرباع = خروج</span></div><div class="players">'+s.players.map((p,i)=>'<div class="pl'+(p.out?' out':'')+(s.phase==="play"&&i===s.turn&&!p.out?' cur':'')+'"><div class="row"><b>'+esc(p.name)+(i===me?' (إنت)':'')+(p.host?' 👑':'')+(p.online?'':' ⚪')+'</b><span>'+(p.out?'🚫':p.q+'/4')+'</span></div><div class="qs">'+[0,1,2,3].map(k=>'<span class="q'+(k<p.q?' on':'')+'"></span>').join("")+'</div></div>').join("")+'</div></div>';
+ if(s.phase==="lobby"){a.innerHTML=head+off+'<div class="panel"><h2 style="text-align:center">كود الغرفة — ابعته لصحابك</h2><div class="code">'+esc(s.code)+'</div><div class="sub">'+s.players.length+' لاعبين (من 2 إلى 12)</div></div><div class="panel"><div class="players">'+s.players.map((p,i)=>'<div class="pl"><b>'+esc(p.name)+(i===me?' (إنت)':'')+(p.host?' 👑':'')+'</b></div>').join("")+'</div>'+(s.isHost?'<button class="btn w g" onclick="act(\'start\')"'+(s.players.length<2?' disabled':'')+'>ابدأ اللعبة</button>':'<p class="sub">مستني المضيف يبدأ اللعبة…</p>')+'<button class="btn w" style="background:#293653" onclick="leave()">خروج</button></div>';return}
+ const over=s.phase==="over";
+ a.innerHTML=head+off+'<div class="panel"><div class="row"><span class="pill">الجولة '+s.round+'</span><span class="small">غرفة '+esc(s.code)+'</span></div><h2 style="text-align:center;margin-top:16px">اسم الدولة بيتكوّن حرف بحرف</h2><div class="big">'+(s.word?[...s.word].join(" "):"＿")+'</div>'
+ +'<div class="turn'+(mine?' me':'')+'">'+(over?'انتهت الجولة':mine?'دورك! اختار حرف':'الدور على: '+esc(cur.name))+'</div>'
+ +(over?'':'<div class="timer"><div id="tb"></div></div><div class="sub" id="ts">10</div>')
+ +'<div class="sub" style="margin-top:6px">'+(s.exact?'الاسم ده دولة كاملة! أي لاعب يقدر يعلن اكتمالها.':'اكتب حرف يكمّل اسم دولة حقيقية — غير كده هتاخد ربع')+'</div>'
+ +'<div class="letters">'+AL.map(ch=>'<button onclick="pick(\''+ch+'\')"'+(mine?'':' disabled')+'>'+ch+'</button>').join("")+'</div>'
+ +'<button class="btn w g" onclick="act(\'finish\')"'+(s.exact?'':' disabled')+'>إعلان اكتمال الدولة</button>'
+ +(s.flash?'<div class="note">'+esc(s.flash)+'</div>':'')
+ +(over?(s.isHost?'<button class="btn w g" onclick="act(\'newround\')">جولة جديدة — رجوع الجميع</button>':'<p class="sub">مستني المضيف يبدأ جولة جديدة…</p>'):'')
+ +'<div class="err">'+esc(err)+'</div></div>'+pl+'<button class="btn w" style="background:#293653" onclick="leave()">خروج من الغرفة</button>';
+ tick()}
+render();conn();
+</script></body></html>
